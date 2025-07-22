@@ -42,22 +42,18 @@ A special welcome to fellow challengers from JIT ACM! We welcome contributions o
 ### Getting Started
 
 1.  **Fork** the repository on GitHub.
-2.  Create a new **branch** for your feature or fix:
+2.  Make your changes to the code.
+3.  **Commit** your changes with a clear and descriptive message:
     ```bash
-    git checkout -b feature/YourAmazingFeature
-    ```
-3.  Make your changes to the code.
-4.  **Commit** your changes with a clear and descriptive message:
-    ```bash
+    git add .
     git commit -m "feat: Add YourAmazingFeature"
     ```
-5.  **Push** your changes to your forked repository:
+4.  **Push** your changes to your forked repository:
     ```bash
-    git push origin feature/YourAmazingFeature
+    git push 
     ```
-6.  Open a **Pull Request** back to the main repository, and we'll review it!
+5.  Open a **Pull Request** back to the main repository, and we'll review it!
 
-Please follow our [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 
 ## 🗺️ Roadmap & Ideas for Improvement
 
