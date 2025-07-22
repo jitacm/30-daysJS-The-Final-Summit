@@ -13,7 +13,7 @@
 ## ► Gameplay & Controls
 
 The goal is to guide your character to the highest possible platform. The score is based on the height you achieve.
-
+Game should have touch and keyboard controls as described below:
 * **Move Left:** `A` or `◄` (Arrow Left)
 * **Move Right:** `D` or `►` (Arrow Right)
 * **Jump:** Hold `Spacebar` to charge your jump. The longer you hold, the higher you'll leap. Release to jump!
