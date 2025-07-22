@@ -1,439 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Cosmic Bouncer 5.0</title>
+  <title>Endless Bouncer</title>
   <style>
-    :root {
-      --charge-color: #292A37;
-      --rotation: 0deg;
-      --scale-x: 1;
-      --scale-y: 1;
-    }
     body {
-      background: #1d1e28; margin: 0; padding: 0; display: flex;
-      justify-content: center; align-items: center; height: 100vh;
-      overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #292A37;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
+
     #gameContainer {
-      width: 100vw; height: 100vh; position: relative; border: 2px solid #5a67d8;
-      box-sizing: border-box; overflow: hidden; background: linear-gradient(to bottom, #292A37, #1d1e28);
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      border: 2px solid ghostwhite;
+      box-sizing: border-box;
+      overflow: hidden;
     }
-    #background-stars {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 0;
-    }
-    .star {
-      position: absolute; background-color: white; border-radius: 50%; animation: twinkle 5s infinite ease-in-out;
-    }
-    .particle {
-      position: absolute; background-color: #00BFFF; border-radius: 50%; display: none; z-index: 2;
-    }
-    @keyframes twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
     #character {
-      width: 50px; height: 50px; position: absolute; z-index: 3;
-      background-color: ghostwhite; border-radius: 5px; border: 2px solid white;
-      box-sizing: border-box; display: flex; justify-content: space-evenly;
-      align-items: flex-start; padding-top: 8px;
-      transform: rotate(var(--rotation)) scale(var(--scale-x), var(--scale-y));
+      width: 50px;
+      height: 50px;
+      position: absolute;
+      background-color: ghostwhite;
+      border-radius: 5px;
+      border: 2px solid white;
+      box-sizing: border-box;
     }
-    .squash { animation: squash 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    .stretch { animation: stretch 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    @keyframes squash { 0%, 100% { --scale-x: 1; --scale-y: 1; } 50% { --scale-x: 1.3; --scale-y: 0.7; } }
-    @keyframes stretch { 0%, 100% { --scale-x: 1; --scale-y: 1; } 50% { --scale-x: 0.7; --scale-y: 1.3; } }
-    
-    .eye {
-      width: 8px; height: 12px; background-color: var(--charge-color);
-      border-radius: 4px; transition: background-color 0.1s; animation: blink 7s infinite;
-    }
-    .eye:nth-child(2) { animation-delay: 0.3s; }
-    @keyframes blink { 0%, 95%, 100% { transform: scaleY(1); } 97.5% { transform: scaleY(0.1); } }
 
-    #chargeGaugeContainer {
-      position: absolute; width: 10px; height: 50px; background-color: rgba(0,0,0,0.3);
-      border: 1px solid white; border-radius: 5px; display: none; z-index: 15;
-      flex-direction: column-reverse;
+    /* Eyes serve as the charge indicator */
+    #character::before, #character::after {
+      content: '';
+      position: absolute;
+      width: 7px;
+      height: 15px;
+      background-color: #292A37; /* Default eye color */
+      top: 10px;
+      transition: background-color 0.1s;
     }
-    #chargeGaugeBar {
-      width: 100%; height: 0%; background-color: var(--charge-color); border-radius: 4px;
-    }
+
+    #character::before { left: 12px; }
+    #character::after { right: 12px; }
 
     .brick {
-      position: absolute; height: 15px; background: #a3bffa;
-      border: 2px solid white; box-sizing: border-box; border-radius: 4px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2); z-index: 1;
+      position: absolute;
+      width: 80px;
+      height: 15px;
+      background: ghostwhite;
+      border-radius: 4px;
     }
-    .moving-brick { background: #f6ad55; }
+
     #scoreDisplay {
-      position: absolute; top: 15px; left: 15px; color: white; font-size: 24px;
-      font-weight: bold; text-shadow: 2px 2px 4px #000; z-index: 10;
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      z-index: 10;
     }
-    .menu {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(29, 30, 40, 0.9); color: white;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center; text-align: center; z-index: 20;
+
+    #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(41, 42, 55, 0.85);
+      color: white;
+      display: none; /* Initially hidden */
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 20;
     }
-    .menu h2 { margin: 0; font-size: 48px; text-transform: uppercase; }
-    .menu p { font-size: 24px; margin: 20px 0; }
-    .menu-button {
-      padding: 15px 30px; font-size: 20px; cursor: pointer; border: 2px solid white;
-      border-radius: 10px; background-color: #5a67d8; color: white; font-weight: bold;
-      transition: transform 0.2s, background-color 0.2s;
+
+    #gameOverScreen h2 {
+      margin: 0;
+      font-size: 48px;
     }
-    .menu-button:hover { transform: scale(1.1); background-color: #434190; }
-    #pauseButton {
-      position: absolute; top: 15px; right: 15px; width: 40px; height: 40px;
-      background: transparent; border: 2px solid white; border-radius: 5px;
-      color: white; font-size: 20px; font-weight: bold; cursor: pointer; z-index: 10;
-      display: none;
+
+    #finalScore {
+      font-size: 24px;
+      margin: 20px 0;
+    }
+
+    #restartButton {
+      padding: 15px 30px;
+      font-size: 20px;
+      cursor: pointer;
+      border: 2px solid white;
+      border-radius: 10px;
+      background-color: transparent;
+      color: white;
+      font-weight: bold;
+    }
+    #restartButton:hover {
+      background-color: ghostwhite;
+      color: #292A37;
     }
   </style>
 </head>
+
 <body>
   <div id="gameContainer">
-    <div id="background-stars"></div>
-    <div id="particle-container"></div>
     <div id="scoreDisplay">Score: 0</div>
-    <button id="pauseButton">||</button>
-    <div id="character">
-      <div class="eye"></div>
-      <div class="eye"></div>
-    </div>
-    <div id="chargeGaugeContainer"><div id="chargeGaugeBar"></div></div>
-    
-    <div id="startMenu" class="menu">
-      <h2>Cosmic Bouncer</h2>
-      <p>Climb as high as you can!</p>
-      <button id="startButton" class="menu-button">Start Game</button>
-    </div>
-    <div id="pauseMenu" class="menu" style="display: none;">
-      <h2>Paused</h2>
-      <button id="resumeButton" class="menu-button">Resume</button>
-    </div>
-    <div id="gameOverScreen" class="menu" style="display: none;">
-      <h2>Game Over</h2>
-      <p id="finalScore">Your Score: 0</p>
-      <button id="restartButton" class="menu-button">Play Again</button>
+    <div id="character"></div>
+    <div id="gameOverScreen">
+        <h2>Game Over</h2>
+        <p id="finalScore">Your Score: 0</p>
+        <button id="restartButton">Restart</button>
     </div>
   </div>
 
   <script>
     const container = document.getElementById("gameContainer");
     const character = document.getElementById("character");
-    const eyes = document.querySelectorAll(".eye");
     const scoreDisplay = document.getElementById("scoreDisplay");
-    const starContainer = document.getElementById("background-stars");
-    const particleContainer = document.getElementById("particle-container");
-    const chargeGaugeContainer = document.getElementById("chargeGaugeContainer");
-    const chargeGaugeBar = document.getElementById("chargeGaugeBar");
-    
-    // Menu Elements
-    const startMenu = document.getElementById('startMenu');
-    const pauseMenu = document.getElementById('pauseMenu');
     const gameOverScreen = document.getElementById("gameOverScreen");
-    const startButton = document.getElementById('startButton');
-    const pauseButton = document.getElementById('pauseButton');
-    const resumeButton = document.getElementById('resumeButton');
-    const restartButton = document.getElementById("restartButton");
     const finalScoreDisplay = document.getElementById("finalScore");
+    const restartButton = document.getElementById("restartButton");
 
     // --- GAME CONSTANTS ---
-    const GRAVITY = 0.75;
-    const AIR_FRICTION = 0.98;
-    const MAX_HORIZONTAL_SPEED = 7;
-    const AIR_CONTROL_FORCE = 0.3;
-    const MAX_JUMP_POWER = 21;
-    const MIN_JUMP_POWER = 5;
-    const CHARGE_SPEED = 0.8;
+    const GRAVITY = 0.8;
+    const MAX_JUMP_POWER = 22;
+    const MIN_JUMP_POWER = 6;
+    const CHARGE_SPEED = 1.5;
+    const HORIZONTAL_SPEED = 7;
     const WALL_BOUNCE_DAMPING = 0.5;
+    const GROUND_FRICTION = 0.1;
     const CHARACTER_WIDTH = 50;
     const CHARACTER_HEIGHT = 50;
-    const MIN_BRICK_WIDTH = 60;
-    const MAX_BRICK_WIDTH = 120;
+    const BRICK_WIDTH = 80;
     const BRICK_HEIGHT = 15;
-    const TOTAL_BRICKS = 10;
-    const TOTAL_STARS = 50;
-    const PARTICLE_COUNT = 30;
+    const TOTAL_BRICKS = 8;
     const SCROLL_THRESHOLD_TOP = window.innerHeight / 2.5;
-    const MIN_PLATFORM_Y_SPACE = 70;
-    const MAX_PLATFORM_Y_SPACE = 160;
-    const MAX_PLATFORM_X_DISTANCE = 250;
-    const MOVING_PLATFORM_CHANCE = 0.2;
 
     // --- GAME STATE ---
     let positionX, positionY, velocityX, velocityY;
-    let isCharging, jumpPower, onGround, onMovingPlatform, horizontalInput;
-    let chargeTimer, score, highestY, currentRotation;
-    let bricks = [], stars = [], particles = [], lastHighestBrick;
-    let gameState = 'menu'; // 'menu', 'playing', 'paused', 'gameOver'
+    let isCharging, jumpPower, jumpDirection;
+    let isJumping;
+    let chargeTimer;
+    let score, highestY;
+    let bricks = [];
+    let gameState = 'playing'; // 'playing' or 'gameOver'
 
-    function setGameState(newState) {
-        gameState = newState;
-        startMenu.style.display = (newState === 'menu') ? 'flex' : 'none';
-        pauseMenu.style.display = (newState === 'paused') ? 'flex' : 'none';
-        gameOverScreen.style.display = (newState === 'gameOver') ? 'flex' : 'none';
-        pauseButton.style.display = (newState === 'playing') ? 'block' : 'none';
-    }
-
-    // --- INITIALIZATION & SETUP ---
-    function initGame() {
-        resetGameVars();
-        createBackgroundStars();
-        createParticlePool();
-        setGameState('menu');
-        requestAnimationFrame(gameLoop);
-    }
-    
-    function resetGameVars() {
+    function resetGame() {
+        // Reset variables
         positionX = container.clientWidth / 2 - CHARACTER_WIDTH / 2;
         positionY = container.clientHeight - CHARACTER_HEIGHT - 50;
-        velocityX = 0; velocityY = 0;
-        isCharging = false; onGround = false; onMovingPlatform = null;
-        jumpPower = MIN_JUMP_POWER; horizontalInput = 0;
-        score = 0; highestY = positionY;
-        lastHighestBrick = null; currentRotation = 0;
-        
-        const elementsToRemove = document.querySelectorAll('.brick');
-        elementsToRemove.forEach(el => el.remove());
-        bricks = [];
-        
+        velocityX = 0;
+        velocityY = 0;
+        isCharging = false;
+        isJumping = false;
+        jumpPower = MIN_JUMP_POWER;
+        jumpDirection = 0;
+        score = 0;
+        highestY = positionY;
+
+        // Reset display
         scoreDisplay.textContent = "Score: 0";
         character.style.left = positionX + "px";
         character.style.top = positionY + "px";
-        character.style.setProperty('--rotation', '0deg');
-        updateChargeVisuals(0);
-        chargeGaugeContainer.style.display = 'none';
+        updateChargeIndicator(0);
+
+        // Hide game over screen
+        gameOverScreen.style.display = 'none';
+
+        // Clear existing bricks and create new ones
+        bricks.forEach(brick => brick.remove());
+        bricks = [];
+        createInitialBricks();
+
+        // Start game
+        gameState = 'playing';
+        requestAnimationFrame(gameLoop);
+    }
+
+    function createInitialBricks() {
+        // Create a starting platform
+        createBrick(container.clientWidth / 2 - BRICK_WIDTH / 2, container.clientHeight - 50);
+
+        // Create random bricks
+        for (let i = 0; i < TOTAL_BRICKS; i++) {
+            createBrick(
+                Math.random() * (container.clientWidth - BRICK_WIDTH),
+                container.clientHeight - 150 - (i * 100)
+            );
+        }
+    }
+
+    function createBrick(x, y) {
+        const brick = document.createElement("div");
+        brick.className = "brick";
+        brick.style.left = x + "px";
+        brick.style.top = y + "px";
+        container.appendChild(brick);
+        bricks.push(brick);
     }
     
-    function startGame() {
-        resetGameVars();
-        createInitialBricks();
-        setGameState('playing');
-    }
+    // --- JUMP MECHANICS ---
+    function startCharge(direction) {
+        if (isJumping || isCharging) return;
+        
+        isCharging = true;
+        jumpDirection = direction;
+        jumpPower = MIN_JUMP_POWER;
 
-    // --- GENERATION FUNCTIONS ---
-    function createParticlePool() { /* Unchanged */ }
-    function createInitialBricks() { /* Unchanged */ }
-    function createBackgroundStars() { /* Unchanged */ }
-    function generateNextBrick() { /* Unchanged */ }
-    function createBrick(x, y, width) { /* Unchanged */ }
-    function spawnLandingParticles() { /* Unchanged */ }
-
-    function spawnChargingParticles() {
-        let count = 2; // More particles per frame
-        for (const p of particles) {
-            if (!p.active) {
-                p.active = true;
-                p.element.style.display = 'block';
-                const angle = Math.random() * Math.PI * 2;
-                const radius = Math.random() * 50 + 80; // Wider spawn area
-                p.x = positionX + CHARACTER_WIDTH / 2 + Math.cos(angle) * radius;
-                p.y = positionY + CHARACTER_HEIGHT / 2 + Math.sin(angle) * radius;
-                p.life = 1;
-                p.isChargingParticle = true;
-                p.element.style.backgroundColor = '#00BFFF'; // Bright blue
-                const size = Math.random() * 4 + 2;
-                p.element.style.width = `${size}px`;
-                p.element.style.height = `${size}px`;
-                if (--count <= 0) break;
+        chargeTimer = setInterval(() => {
+            if (jumpPower < MAX_JUMP_POWER) {
+                jumpPower += CHARGE_SPEED;
             }
-        }
-    }
-
-    // --- ACTIONS & VISUALS ---
-    function startCharge() {
-      if (!onGround || isCharging) return;
-      isCharging = true;
-      jumpPower = MIN_JUMP_POWER;
-      chargeGaugeContainer.style.display = 'flex';
-      chargeTimer = setInterval(() => {
-        if (jumpPower < MAX_JUMP_POWER) {
-            jumpPower += CHARGE_SPEED;
-            spawnChargingParticles();
-        }
-        updateChargeVisuals(jumpPower);
-      }, 20);
+            updateChargeIndicator(jumpPower);
+        }, 20);
     }
 
     function releaseJump() {
-      if (!isCharging) return;
-      isCharging = false;
-      onGround = false;
-      clearInterval(chargeTimer);
+        if (!isCharging) return;
 
-      if (horizontalInput !== 0) {
-        velocityX = MAX_HORIZONTAL_SPEED * horizontalInput * (jumpPower / MAX_JUMP_POWER);
-      } else {
-        velocityX = 0; // Vertical jump if no direction
-      }
-      velocityY = -jumpPower;
-      
-      updateChargeVisuals(0);
-      chargeGaugeContainer.style.display = 'none';
-      triggerAnimation('stretch');
+        velocityX = HORIZONTAL_SPEED * jumpDirection;
+        velocityY = -jumpPower;
+        isCharging = false;
+        isJumping = true;
+        clearInterval(chargeTimer);
+        updateChargeIndicator(0);
+    }
+    
+    function updateChargeIndicator(power) {
+        const chargeRatio = Math.min((power - MIN_JUMP_POWER) / (MAX_JUMP_POWER - MIN_JUMP_POWER), 1);
+        const color = `rgb(${255 * chargeRatio}, ${255 * (1 - chargeRatio)}, 0)`;
+        character.style.setProperty('--eye-color', color);
+        // A bit of a hack, but direct pseudo-element styling requires CSS variables
+        character.style.background = `
+            conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
+            conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
+            conic-gradient(ghostwhite, ghostwhite)`;
+        character.style.backgroundSize = '7px 15px, 7px 15px, 50px 50px';
+        character.style.backgroundPosition = '12px 10px, 31px 10px, 0 0';
+        character.style.backgroundRepeat = 'no-repeat';
     }
 
-    function togglePause() {
-        if (gameState === 'playing') {
-            setGameState('paused');
-            if(isCharging) {
-                clearInterval(chargeTimer);
-                isCharging = false;
-                updateChargeVisuals(0);
-                chargeGaugeContainer.style.display = 'none';
+    // --- INPUT HANDLERS ---
+    container.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const touchX = e.touches[0].clientX;
+        const direction = touchX < container.clientWidth / 2 ? -1 : 1;
+        startCharge(direction);
+    }, { passive: false });
+
+    container.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        releaseJump();
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if(isJumping) return;
+        if (e.key === ' ' || e.key === 'ArrowUp') {
+            if(!isCharging) startCharge(velocityX > 0 ? 1 : (velocityX < 0 ? -1 : 1)); // Default to right if stationary
+        }
+        if (e.key === 'ArrowLeft') jumpDirection = -1;
+        if (e.key === 'ArrowRight') jumpDirection = 1;
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key === ' ' || e.key === 'ArrowUp') {
+            releaseJump();
+        }
+    });
+
+    // --- COLLISION & PHYSICS ---
+    function checkCollisions() {
+        // Check for landing on bricks
+        for (const brick of bricks) {
+            const brickTop = brick.offsetTop;
+            const brickLeft = brick.offsetLeft;
+
+            if (
+                velocityY > 0 && // Moving down
+                positionY + CHARACTER_HEIGHT >= brickTop &&
+                positionY + CHARACTER_HEIGHT <= brickTop + BRICK_HEIGHT &&
+                positionX + CHARACTER_WIDTH > brickLeft &&
+                positionX < brickLeft + BRICK_WIDTH
+            ) {
+                positionY = brickTop - CHARACTER_HEIGHT;
+                velocityY = 0;
+                isJumping = false;
+                velocityX *= GROUND_FRICTION;
+                if (Math.abs(velocityX) < 0.1) velocityX = 0;
+                return;
             }
-        } else if (gameState === 'paused') {
-            setGameState('playing');
+        }
+
+        // Check for ground collision
+        if (positionY >= container.clientHeight - CHARACTER_HEIGHT) {
+            positionY = container.clientHeight - CHARACTER_HEIGHT;
+            velocityY = 0;
+            isJumping = false;
+            velocityX *= GROUND_FRICTION;
+            if (Math.abs(velocityX) < 0.1) velocityX = 0;
         }
     }
-    
-    // --- PHYSICS & COLLISION ---
-    function checkCollisions() { /* Unchanged */ }
-    
-    // --- CORE GAME LOOP ---
+
+    function endGame() {
+        gameState = 'gameOver';
+        finalScoreDisplay.textContent = `Your Score: ${score}`;
+        gameOverScreen.style.display = 'flex';
+    }
+
+    // --- MAIN GAME LOOP ---
     function gameLoop() {
-      if (gameState === 'playing') {
-        // --- Update moving platforms ---
-        bricks.forEach(brick => {
-            if (brick.isMoving) {
-                const oldLeft = brick.offsetLeft;
-                const newLeft = brick.originalX + Math.sin(Date.now() * brick.moveSpeed + brick.moveOffset) * brick.moveRange;
-                brick.style.left = `${newLeft}px`;
-                brick.dx = newLeft - oldLeft;
-            } else {
-                brick.dx = 0;
-            }
-        });
+        if (gameState !== 'playing') return;
 
-        // --- Character physics ---
-        if (!onGround) {
-            velocityY += GRAVITY;
-            if (horizontalInput !== 0) {
-                velocityX += horizontalInput * AIR_CONTROL_FORCE;
-                velocityX = Math.max(-MAX_HORIZONTAL_SPEED, Math.min(MAX_HORIZONTAL_SPEED, velocityX));
-            }
-            velocityX *= AIR_FRICTION;
-        } else {
-            if (onMovingPlatform) positionX += onMovingPlatform.dx;
-        }
+        // Apply gravity
+        velocityY += GRAVITY;
+
+        // Update position
         positionX += velocityX;
         positionY += velocityY;
-        
-        checkCollisions();
-        
-        // --- Wall bounces ---
-        if (positionX < 0) { positionX = 0; velocityX *= -WALL_BOUNCE_DAMPING; }
-        else if (positionX > container.clientWidth - CHARACTER_WIDTH) { positionX = container.clientWidth - CHARACTER_WIDTH; velocityX *= -WALL_BOUNCE_DAMPING; }
-      }
 
-      // --- Visual updates (run even when paused for some effects) ---
-      if (gameState === 'playing' || gameState === 'paused') {
-          // --- Particle Physics ---
-          for(const p of particles) {
-            if(p.active){
-                if(p.isChargingParticle) {
-                    if (gameState === 'playing') {
-                        const targetX = positionX + CHARACTER_WIDTH / 2;
-                        const targetY = positionY + CHARACTER_HEIGHT / 2;
-                        p.x += (targetX - p.x) * 0.15; // Faster attraction
-                        p.y += (targetY - p.y) * 0.15;
-                        const distSq = (targetX - p.x)**2 + (targetY - p.y)**2;
-                        if (distSq < 100) p.life = 0;
-                    } else {
-                        // Fade out charging particles if paused
-                        p.life -= 0.05;
-                    }
-                } else {
-                    p.x += p.vx; p.y += p.vy; p.vy += GRAVITY * 0.2; p.life -= 0.02;
-                }
-                p.element.style.transform = `translate(${p.x - p.element.offsetWidth / 2}px, ${p.y - p.element.offsetHeight / 2}px)`;
-                p.element.style.opacity = p.life;
-                if(p.life <= 0) { p.active = false; p.isChargingParticle = false; p.element.style.display = 'none'; }
-            }
-          }
-
-          // --- Scrolling & Recycling ---
-          let scrollAmount = 0;
-          if (gameState === 'playing' && positionY < SCROLL_THRESHOLD_TOP) {
-              scrollAmount = SCROLL_THRESHOLD_TOP - positionY;
-              positionY += scrollAmount; highestY -= scrollAmount;
-          }
-          if (scrollAmount > 0) {
-              // ... scrolling logic for bricks and stars ...
-          }
-          
-          // --- Update Visuals ---
-          const targetRotation = (velocityX / MAX_HORIZONTAL_SPEED) * 15;
-          currentRotation += (targetRotation - currentRotation) * 0.1;
-          character.style.setProperty('--rotation', `${currentRotation}deg`);
-
-          scoreDisplay.textContent = "Score: " + score;
-          character.style.left = positionX + "px";
-          character.style.top = positionY + "px";
-          updateEyeDirection();
-
-          if(isCharging){
-            chargeGaugeContainer.style.left = `${positionX - 20}px`;
-            chargeGaugeContainer.style.top = `${positionY}px`;
-          }
-      }
-
-      // --- Scoring and Game Over Check (only when playing) ---
-      if (gameState === 'playing') {
-          const currentHeight = Math.floor((highestY - positionY) / 10);
-          if (currentHeight > score) score = currentHeight;
-          scoreDisplay.textContent = "Score: " + score;
-          if (positionY > container.clientHeight + 100) {
-            finalScoreDisplay.textContent = `Your Score: ${score}`;
-            setGameState('gameOver');
-          }
-      }
-      
-      requestAnimationFrame(gameLoop);
-    }
-
-    // --- EVENT LISTENERS ---
-    startButton.addEventListener('click', startGame);
-    restartButton.addEventListener('click', startGame);
-    pauseButton.addEventListener('click', togglePause);
-    resumeButton.addEventListener('click', togglePause);
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            if(gameState === 'playing' || gameState === 'paused') {
-                togglePause();
-            }
+        // Wall bounces
+        if (positionX < 0) {
+            positionX = 0;
+            velocityX *= -WALL_BOUNCE_DAMPING;
+        } else if (positionX > container.clientWidth - CHARACTER_WIDTH) {
+            positionX = container.clientWidth - CHARACTER_WIDTH;
+            velocityX *= -WALL_BOUNCE_DAMPING;
         }
-        if (gameState !== 'playing') return;
-        if (e.key === 'a' || e.key === 'ArrowLeft') horizontalInput = -1;
-        else if (e.key === 'd' || e.key === 'ArrowRight') horizontalInput = 1;
-        else if (e.key === ' ') startCharge();
-    });
-    window.addEventListener('keyup', (e) => {
-        if (gameState !== 'playing') return;
-        if ((e.key === 'a' || e.key === 'ArrowLeft') && horizontalInput === -1) horizontalInput = 0;
-        if ((e.key === 'd' || e.key === 'ArrowRight') && horizontalInput === 1) horizontalInput = 0;
-        if (e.key === ' ') releaseJump();
-    });
-    // Touch controls would need to check gameState as well
+
+        checkCollisions();
+
+        // Vertical scrolling
+        if (positionY < SCROLL_THRESHOLD_TOP) {
+            const scrollAmount = SCROLL_THRESHOLD_TOP - positionY;
+            positionY += scrollAmount;
+            
+            // Move bricks down
+            bricks.forEach(brick => {
+                const newTop = brick.offsetTop + scrollAmount;
+                brick.style.top = newTop + "px";
+            });
+            
+            highestY -= scrollAmount;
+        }
+
+        // Update score based on highest point reached
+        const currentHeight = Math.floor((highestY - positionY) / 10);
+        if (currentHeight > score) {
+            score = currentHeight;
+            scoreDisplay.textContent = "Score: " + score;
+        }
+
+        // Update character position
+        character.style.left = positionX + "px";
+        character.style.top = positionY + "px";
+
+        // Recycle bricks
+        bricks.forEach(brick => {
+            if (brick.offsetTop > container.clientHeight) {
+                // Move brick to the top, off-screen
+                brick.style.left = Math.random() * (container.clientWidth - BRICK_WIDTH) + 'px';
+                brick.style.top = (brick.offsetTop - container.clientHeight - 200) + 'px';
+            }
+        });
+        
+        // Game Over condition
+        if (positionY > container.clientHeight) {
+            endGame();
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
     
-    // Fill in unchanged functions for a complete, runnable script
-    const unchangedFunctions = {
-        createParticlePool: function(){for(let e=0;e<PARTICLE_COUNT;e++){const t=document.createElement("div");t.className="particle",particleContainer.appendChild(t),particles.push({element:t,active:!1})}},
-        createInitialBricks: function(){const e=(MAX_BRICK_WIDTH+MIN_BRICK_WIDTH)/2,t=container.clientWidth/2-e/2,n=container.clientHeight-50;lastHighestBrick=createBrick(t,n,e);for(let i=0;i<TOTAL_BRICKS;i++)generateNextBrick()},
-        createBackgroundStars: function(){for(let e=0;e<TOTAL_STARS;e++){const t=document.createElement("div");t.className="star";const n=3*Math.random()+1;t.style.width=`${n}px`,t.style.height=`${n}px`,t.style.left=`${100*Math.random()}%`,t.style.top=`${100*Math.random()}%`,t.dataset.parallax=.5*Math.random()+.2,t.style.animationDelay=`${5*Math.random()}s`,starContainer.appendChild(t),stars.push(t)}},
-        generateNextBrick: function(){const e=lastHighestBrick.offsetTop-(MIN_PLATFORM_Y_SPACE+Math.random()*(MAX_PLATFORM_Y_SPACE-MIN_PLATFORM_Y_SPACE)),t=MIN_BRICK_WIDTH+Math.random()*(MAX_BRICK_WIDTH-MIN_BRICK_WIDTH);let n=lastHighestBrick.offsetLeft+(.5-Math.random())*MAX_PLATFORM_X_DISTANCE;return n=Math.max(0,Math.min(container.clientWidth-t,n)),lastHighestBrick=createBrick(n,e,t)},
-        createBrick: function(e,t,n){const i=document.createElement("div");return i.className="brick",i.style.left=`${e}px`,i.style.top=`${t}px`,i.style.width=`${n}px`,i.width=n,Math.random()<MOVING_PLATFORM_CHANCE&&t<container.clientHeight-100?(i.classList.add("moving-brick"),i.isMoving=!0,i.originalX=e,i.moveSpeed=.001*Math.random()+5e-4,i.moveRange=50*Math.random()+50,i.moveOffset=2*Math.random()*Math.PI):i.isMoving=!1,i.dx=0,container.appendChild(i),bricks.push(i),i},
-        spawnLandingParticles: function(){let e=5;for(const t of particles)if(!t.active){t.active=!0,t.element.style.display="block",t.x=positionX+CHARACTER_WIDTH/2,t.y=positionY+CHARACTER_HEIGHT,t.vx=4*(Math.random()-.5),t.vy=-4*Math.random()-1,t.life=1,t.isChargingParticle=!1,t.element.style.backgroundColor="#a3bffa";const n=4*Math.random()+2;if(t.element.style.width=`${n}px`,t.element.style.height=`${n}px`,!--e<=0)break}},
-        updateChargeVisuals: function(e){const t=Math.max(0,(e-MIN_JUMP_POWER)/(MAX_JUMP_POWER-MIN_JUMP_POWER)),n=[41,42,55],i=[0,191,255],o=n[0]+(i[0]-n[0])*t,a=n[1]+(i[1]-n[1])*t,r=n[2]+(i[2]-n[2])*t,s=`rgb(${o},${a},${r})`;document.documentElement.style.setProperty("--charge-color",s),chargeGaugeBar.style.height=`${100*t}%`},
-        triggerAnimation: function(e){character.classList.remove("squash","stretch"),character.classList.add(e),setTimeout(()=>character.classList.remove(e),300)},
-        checkCollisions: function(){onGround=!1,onMovingPlatform=null;const e=CHARACTER_WIDTH/2,t=CHARACTER_HEIGHT/2,n=positionX+e,i=positionY+t;for(const o of bricks){const a=o.width/2,r=BRICK_HEIGHT/2,s=o.offsetLeft+a,l=o.offsetTop+r,c=n-s,h=i-l,d=e+a,p=t+r;if(Math.abs(c)<d&&Math.abs(h)<p){const u=d-Math.abs(c),g=p-Math.abs(h);g<u?h>0&&velocityY<0?(positionY+=g,velocityY=0):h<=0&&velocityY>=0&&(positionY-=g,onGround||(triggerAnimation("squash"),spawnLandingParticles()),velocityY=0,onGround=!0,o.isMoving?onMovingPlatform=o:velocityX=0): (velocityX*=-WALL_BOUNCE_DAMPING,c>0?positionX+=u:positionX-=u)}}positionY>=container.clientHeight-CHARACTER_HEIGHT&&(positionY=container.clientHeight-CHARACTER_HEIGHT,velocityY>0&&(velocityY=0),onGround=!0,velocityX=0)},
-        updateEyeDirection: function() {if(isCharging)return void eyes.forEach(e=>e.style.transform="translate(0px, 2px)");let e=null,t=1/0;const n=positionX+CHARACTER_WIDTH/2,i=positionY+CHARACTER_HEIGHT/2;for(const o of bricks)if(o.offsetTop<positionY){const a=o.offsetLeft+o.width/2,r=o.offsetTop+BRICK_HEIGHT/2,s=(a-n)**2+(r-i)**2;s<t&&(t=s,e=o)}let o=0,a=0;e&&(o=3*Math.cos(Math.atan2(e.offsetTop+BRICK_HEIGHT/2-i,e.offsetLeft+e.width/2-n)),a=2*Math.sin(Math.atan2(e.offsetTop+BRICK_HEIGHT/2-i,e.offsetLeft+e.width/2-n))),eyes.forEach(e=>e.style.transform=`translate(${o}px, ${a}px)`)}
-    };
-    Object.assign(window, unchangedFunctions); // Assign to window scope
-    
-    initGame();
+    // --- INITIALIZATION ---
+    restartButton.addEventListener('click', resetGame);
+    resetGame();
   </script>
 </body>
+
 </html>
