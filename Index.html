@@ -5,111 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Endless Bouncer</title>
-  <style>
-    body {
-      background: #292A37;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    #gameContainer {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-      border: 2px solid ghostwhite;
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-
-    #character {
-      width: 50px;
-      height: 50px;
-      position: absolute;
-      background-color: ghostwhite;
-      border-radius: 5px;
-      border: 2px solid white;
-      box-sizing: border-box;
-    }
-
-    /* Eyes serve as the charge indicator */
-    #character::before, #character::after {
-      content: '';
-      position: absolute;
-      width: 7px;
-      height: 15px;
-      background-color: #292A37; /* Default eye color */
-      top: 10px;
-      transition: background-color 0.1s;
-    }
-
-    #character::before { left: 12px; }
-    #character::after { right: 12px; }
-
-    .brick {
-      position: absolute;
-      width: 80px;
-      height: 15px;
-      background: ghostwhite;
-      border-radius: 4px;
-    }
-
-    #scoreDisplay {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-      z-index: 10;
-    }
-
-    #gameOverScreen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(41, 42, 55, 0.85);
-      color: white;
-      display: none; /* Initially hidden */
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      z-index: 20;
-    }
-
-    #gameOverScreen h2 {
-      margin: 0;
-      font-size: 48px;
-    }
-
-    #finalScore {
-      font-size: 24px;
-      margin: 20px 0;
-    }
-
-    #restartButton {
-      padding: 15px 30px;
-      font-size: 20px;
-      cursor: pointer;
-      border: 2px solid white;
-      border-radius: 10px;
-      background-color: transparent;
-      color: white;
-      font-weight: bold;
-    }
-    #restartButton:hover {
-      background-color: ghostwhite;
-      color: #292A37;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="gameIcon.PNG">
 </head>
 
 <body>
@@ -251,9 +148,14 @@
     }
 
     // --- INPUT HANDLERS ---
+    
+
+    // --- INPUT HANDLERS ---
     container.addEventListener("touchstart", (e) => {
         e.preventDefault();
         const touchX = e.touches[0].clientX;
+        // For touch, decide if it's left/right or pure up (you might need a UI element for pure up on touch)
+        // For simplicity, here it acts like left/right arrow based on touch side
         const direction = touchX < container.clientWidth / 2 ? -1 : 1;
         startCharge(direction);
     }, { passive: false });
@@ -264,16 +166,22 @@
     });
 
     window.addEventListener('keydown', (e) => {
-        if(isJumping) return;
-        if (e.key === ' ' || e.key === 'ArrowUp') {
-            if(!isCharging) startCharge(velocityX > 0 ? 1 : (velocityX < 0 ? -1 : 1)); // Default to right if stationary
+        // If the character is already mid-jump or already charging a jump, do nothing for new actions
+        if (isJumping || isCharging) return; 
+
+        if (e.key === 'ArrowLeft') {
+            startCharge(-1); // Start charging for a left jump
+        } else if (e.key === 'ArrowRight') {
+            startCharge(1); // Start charging for a right jump
+        } else if (e.key === ' ' || e.key === 'ArrowUp') {
+            startCharge(0); // Start charging for a pure upward jump
         }
-        if (e.key === 'ArrowLeft') jumpDirection = -1;
-        if (e.key === 'ArrowRight') jumpDirection = 1;
     });
 
     window.addEventListener('keyup', (e) => {
-        if (e.key === ' ' || e.key === 'ArrowUp') {
+        // If ANY of the relevant jump/direction keys are released,
+        // and if a charge was currently active, release the jump.
+        if (isCharging && (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
             releaseJump();
         }
     });
