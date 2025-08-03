@@ -200,6 +200,12 @@
                 positionX + CHARACTER_WIDTH > brickLeft &&
                 positionX < brickLeft + BRICK_WIDTH
             ) {
+                if (isJumping) {
+                     // **NEW SCORING LOGIC HERE**
+                    score++;
+                    scoreDisplay.textContent = "Score: " + score; 
+                }
+
                 positionY = brickTop - CHARACTER_HEIGHT;
                 velocityY = 0;
                 isJumping = false;
@@ -211,11 +217,12 @@
 
         // Check for ground collision
         if (positionY >= container.clientHeight - CHARACTER_HEIGHT) {
-            positionY = container.clientHeight - CHARACTER_HEIGHT;
-            velocityY = 0;
-            isJumping = false;
-            velocityX *= GROUND_FRICTION;
-            if (Math.abs(velocityX) < 0.1) velocityX = 0;
+        positionY = container.clientHeight - CHARACTER_HEIGHT;
+        velocityY = 0;
+        isJumping = false;
+        velocityX *= GROUND_FRICTION;
+        if (Math.abs(velocityX) < 0.1) velocityX = 0;
+        lastBrick = null;
         }
     }
 
@@ -262,11 +269,11 @@
         }
 
         // Update score based on highest point reached
-        const currentHeight = Math.floor((highestY - positionY) / 10);
-        if (currentHeight > score) {
-            score = currentHeight;
-            scoreDisplay.textContent = "Score: " + score;
-        }
+        // const currentHeight = Math.floor((highestY - positionY) / 10);
+        // if (currentHeight > score) {
+        //     score = currentHeight;
+        //     scoreDisplay.textContent = "Score: " + score;
+        // }
 
         // Update character position
         character.style.left = positionX + "px";
