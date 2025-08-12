@@ -5,6 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Endless Bouncer</title>
+  
+  <!-- Inline styles from feature/platform-variety branch -->
   <style>
     body {
       background: #292A37;
@@ -131,6 +133,11 @@
       color: #292A37;
     }
   </style>
+
+  <!-- External CSS and favicon from main branch -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="gameIcon.PNG">
+
 </head>
 
 <body>
@@ -152,7 +159,6 @@
     const finalScoreDisplay = document.getElementById("finalScore");
     const restartButton = document.getElementById("restartButton");
 
-   
     const GRAVITY = 0.8;
     const MAX_JUMP_POWER = 22;
     const MIN_JUMP_POWER = 6;
@@ -167,7 +173,6 @@
     const TOTAL_BRICKS = 8;
     const SCROLL_THRESHOLD_TOP = window.innerHeight / 2.5;
 
- 
     let positionX, positionY, velocityX, velocityY;
     let isCharging, jumpPower, jumpDirection;
     let isJumping;
@@ -298,6 +303,7 @@
     }
 
     // --- INPUT HANDLERS ---
+
     container.addEventListener("touchstart", (e) => {
       e.preventDefault();
       const touchX = e.touches[0].clientX;
@@ -457,11 +463,10 @@
         scoreDisplay.textContent = "Score: " + score;
       }
 
-
       character.style.left = positionX + "px";
       character.style.top = positionY + "px";
 
-           bricks.forEach((brick, i) => {
+      bricks.forEach((brick, i) => {
         if (brick.offsetTop > container.clientHeight) {
           const data = brickData[i];
           brick.style.left = Math.random() * (container.clientWidth - BRICK_WIDTH) + 'px';
@@ -484,7 +489,6 @@
       requestAnimationFrame(gameLoop);
     }
 
-   
     restartButton.addEventListener('click', resetGame);
     resetGame();
   </script>
