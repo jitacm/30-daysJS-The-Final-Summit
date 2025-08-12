@@ -7,7 +7,7 @@
 
 "The Final Summit" is a simple, addictive, and challenging physics-based vertical platformer built with pure HTML, CSS, and JavaScript. This project was developed to showcase what can be built for the web from scratch.
 
-![Gameplay GIF Placeholder](https://user-images.githubusercontent.com/10113869/203649068-0a486a47-3a68-4a53-8181-e24c3116a309.png)
+
 
 
 ## ► Gameplay & Controls
@@ -71,19 +71,13 @@ Looking for a way to contribute? Here are some ideas to get you started!
 * [ ] **Code Refactoring:** Separate the CSS and JavaScript into their own files (`style.css`, `game.js`).
 
 
-##  Challenge Details
+
 
 ### About the #30DaysDevChallenge
 
 The #30DaysDevChallenge is an initiative by the **JIT ACM Student Chapter** to encourage students to build projects, learn new technologies, and foster a culture of development and collaboration over a period of 30 days.
 
-### My Journey
 
-This project was built from a single `index.html` file to demonstrate how much can be accomplished with foundational web technologies. Throughout the challenge, I focused on:
-* Implementing a clean game loop with `requestAnimationFrame`.
-* Creating a physics system from scratch.
-* Managing game states (menu, playing, paused, game over).
-* Using CSS variables and keyframe animations to create a dynamic and appealing visual experience without a graphics library.
 
 
 ## 📜 License
