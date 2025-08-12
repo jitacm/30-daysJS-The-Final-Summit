@@ -20,6 +20,11 @@
     </div>
   </div>
 
+  <!-- 🎵 AUDIO ELEMENTS ADDED -->
+  <audio id="jumpSound" src="assets/audio/jump.mp3" preload="auto"></audio>
+  <audio id="landSound" src="assets/audio/land.mp3" preload="auto"></audio>
+  <audio id="bgm" src="assets/audio/bgm.mp3" preload="auto" loop></audio>
+
   <script>
     const container = document.getElementById("gameContainer");
     const character = document.getElementById("character");
@@ -27,6 +32,11 @@
     const gameOverScreen = document.getElementById("gameOverScreen");
     const finalScoreDisplay = document.getElementById("finalScore");
     const restartButton = document.getElementById("restartButton");
+
+    // 🎵 AUDIO REFERENCES
+    const jumpSound = document.getElementById("jumpSound");
+    const landSound = document.getElementById("landSound");
+    const bgm = document.getElementById("bgm");
 
     // --- GAME CONSTANTS ---
     const GRAVITY = 0.8;
@@ -81,14 +91,13 @@
 
         // Start game
         gameState = 'playing';
+        bgm.currentTime = 0; // 🎵 Restart music
+        bgm.play().catch(() => {}); // Catch autoplay restrictions
         requestAnimationFrame(gameLoop);
     }
 
     function createInitialBricks() {
-        // Create a starting platform
         createBrick(container.clientWidth / 2 - BRICK_WIDTH / 2, container.clientHeight - 50);
-
-        // Create random bricks
         for (let i = 0; i < TOTAL_BRICKS; i++) {
             createBrick(
                 Math.random() * (container.clientWidth - BRICK_WIDTH),
@@ -131,13 +140,16 @@
         isJumping = true;
         clearInterval(chargeTimer);
         updateChargeIndicator(0);
+
+        // 🎵 Play jump sound
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(() => {});
     }
     
     function updateChargeIndicator(power) {
         const chargeRatio = Math.min((power - MIN_JUMP_POWER) / (MAX_JUMP_POWER - MIN_JUMP_POWER), 1);
         const color = `rgb(${255 * chargeRatio}, ${255 * (1 - chargeRatio)}, 0)`;
         character.style.setProperty('--eye-color', color);
-        // A bit of a hack, but direct pseudo-element styling requires CSS variables
         character.style.background = `
             conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
             conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
@@ -148,14 +160,9 @@
     }
 
     // --- INPUT HANDLERS ---
-    
-
-    // --- INPUT HANDLERS ---
     container.addEventListener("touchstart", (e) => {
         e.preventDefault();
         const touchX = e.touches[0].clientX;
-        // For touch, decide if it's left/right or pure up (you might need a UI element for pure up on touch)
-        // For simplicity, here it acts like left/right arrow based on touch side
         const direction = touchX < container.clientWidth / 2 ? -1 : 1;
         startCharge(direction);
     }, { passive: false });
@@ -166,21 +173,13 @@
     });
 
     window.addEventListener('keydown', (e) => {
-        // If the character is already mid-jump or already charging a jump, do nothing for new actions
         if (isJumping || isCharging) return; 
-
-        if (e.key === 'ArrowLeft') {
-            startCharge(-1); // Start charging for a left jump
-        } else if (e.key === 'ArrowRight') {
-            startCharge(1); // Start charging for a right jump
-        } else if (e.key === ' ' || e.key === 'ArrowUp') {
-            startCharge(0); // Start charging for a pure upward jump
-        }
+        if (e.key === 'ArrowLeft') startCharge(-1);
+        else if (e.key === 'ArrowRight') startCharge(1);
+        else if (e.key === ' ' || e.key === 'ArrowUp') startCharge(0);
     });
 
     window.addEventListener('keyup', (e) => {
-        // If ANY of the relevant jump/direction keys are released,
-        // and if a charge was currently active, release the jump.
         if (isCharging && (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
             releaseJump();
         }
@@ -188,22 +187,24 @@
 
     // --- COLLISION & PHYSICS ---
     function checkCollisions() {
-        // Check for landing on bricks
         for (const brick of bricks) {
             const brickTop = brick.offsetTop;
             const brickLeft = brick.offsetLeft;
 
             if (
-                velocityY > 0 && // Moving down
+                velocityY > 0 &&
                 positionY + CHARACTER_HEIGHT >= brickTop &&
                 positionY + CHARACTER_HEIGHT <= brickTop + BRICK_HEIGHT &&
                 positionX + CHARACTER_WIDTH > brickLeft &&
                 positionX < brickLeft + BRICK_WIDTH
             ) {
                 if (isJumping) {
-                     // **NEW SCORING LOGIC HERE**
                     score++;
-                    scoreDisplay.textContent = "Score: " + score; 
+                    scoreDisplay.textContent = "Score: " + score;
+
+                    // 🎵 Play land sound
+                    landSound.currentTime = 0;
+                    landSound.play().catch(() => {});
                 }
 
                 positionY = brickTop - CHARACTER_HEIGHT;
@@ -215,14 +216,16 @@
             }
         }
 
-        // Check for ground collision
         if (positionY >= container.clientHeight - CHARACTER_HEIGHT) {
-        positionY = container.clientHeight - CHARACTER_HEIGHT;
-        velocityY = 0;
-        isJumping = false;
-        velocityX *= GROUND_FRICTION;
-        if (Math.abs(velocityX) < 0.1) velocityX = 0;
-        lastBrick = null;
+            positionY = container.clientHeight - CHARACTER_HEIGHT;
+            velocityY = 0;
+            isJumping = false;
+            velocityX *= GROUND_FRICTION;
+            if (Math.abs(velocityX) < 0.1) velocityX = 0;
+
+            // 🎵 Play land sound on ground hit
+            landSound.currentTime = 0;
+            landSound.play().catch(() => {});
         }
     }
 
@@ -230,20 +233,16 @@
         gameState = 'gameOver';
         finalScoreDisplay.textContent = `Your Score: ${score}`;
         gameOverScreen.style.display = 'flex';
+        bgm.pause(); // 🎵 Stop background music
     }
 
     // --- MAIN GAME LOOP ---
     function gameLoop() {
         if (gameState !== 'playing') return;
-
-        // Apply gravity
         velocityY += GRAVITY;
-
-        // Update position
         positionX += velocityX;
         positionY += velocityY;
 
-        // Wall bounces
         if (positionX < 0) {
             positionX = 0;
             velocityX *= -WALL_BOUNCE_DAMPING;
@@ -254,41 +253,25 @@
 
         checkCollisions();
 
-        // Vertical scrolling
         if (positionY < SCROLL_THRESHOLD_TOP) {
             const scrollAmount = SCROLL_THRESHOLD_TOP - positionY;
             positionY += scrollAmount;
-            
-            // Move bricks down
             bricks.forEach(brick => {
-                const newTop = brick.offsetTop + scrollAmount;
-                brick.style.top = newTop + "px";
+                brick.style.top = (brick.offsetTop + scrollAmount) + "px";
             });
-            
             highestY -= scrollAmount;
         }
 
-        // Update score based on highest point reached
-        // const currentHeight = Math.floor((highestY - positionY) / 10);
-        // if (currentHeight > score) {
-        //     score = currentHeight;
-        //     scoreDisplay.textContent = "Score: " + score;
-        // }
-
-        // Update character position
         character.style.left = positionX + "px";
         character.style.top = positionY + "px";
 
-        // Recycle bricks
         bricks.forEach(brick => {
             if (brick.offsetTop > container.clientHeight) {
-                // Move brick to the top, off-screen
                 brick.style.left = Math.random() * (container.clientWidth - BRICK_WIDTH) + 'px';
                 brick.style.top = (brick.offsetTop - container.clientHeight - 200) + 'px';
             }
         });
-        
-        // Game Over condition
+
         if (positionY > container.clientHeight) {
             endGame();
         }
