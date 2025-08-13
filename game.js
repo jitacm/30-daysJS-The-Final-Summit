@@ -1,81 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Endless Bouncer</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="gameIcon.PNG">
-</head>
-
-<body>
-  <div id="startScreen" class="screen">
-    <div class="game-title">
-      <h1>Endless Bouncer</h1>
-      <div class="bounce-animation"></div>
-    </div>
-    <div class="menu-options">
-      <button id="startGameBtn" class="menu-btn">Start Game</button>
-      <button id="howToPlayBtn" class="menu-btn">How to Play</button>
-    </div>
-  </div>
-
-  <div id="howToPlayScreen" class="screen">
-    <h2>How to Play</h2>
-    <div class="instructions">
-      <div class="instruction-item">
-        <span class="key">←→</span>
-        <p>Use arrow buttons to move left/right</p>
-      </div>
-      <div class="instruction-item">
-        <span class="key">↑</span>
-        <p>Hold to charge jump, release to bounce</p>
-      </div>
-      <div class="instruction-item">
-        <span class="key">🎯</span>
-        <p>Land on platforms to climb higher</p>
-      </div>
-    </div>
-    <button id="backToMenuBtn" class="menu-btn">Back to Menu</button>
-  </div>
-
-  <div id="gameContainer">
-    <div id="scoreDisplay">Score: 0</div>
-    <div id="character"></div>
-    <div id="gameOverScreen">
-      <h2>Game Over</h2>
-      <p id="finalScore">Your Score: 0</p>
-      <button id="restartButton">Restart</button>
-    </div>
-    <div id="controls">
-      <div class="control-btn" id="leftBtn">←</div>
-      <div class="control-btn" id="jumpBtn">↑</div>
-      <div class="control-btn" id="rightBtn">→</div>
-    </div>
-  </div>
-
-
-  <script src="game.js"></script>
-
-  <!-- 🎵 AUDIO ELEMENTS ADDED -->
-  <audio id="jumpSound" src="assets/audio/jump.mp3" preload="auto"></audio>
-  <audio id="landSound" src="assets/audio/land.mp3" preload="auto"></audio>
-  <audio id="bgm" src="assets/audio/bgm.mp3" preload="auto" loop></audio>
-
-  <script>
-    const container = document.getElementById("gameContainer");
+const container = document.getElementById("gameContainer");
     const character = document.getElementById("character");
     const scoreDisplay = document.getElementById("scoreDisplay");
     const gameOverScreen = document.getElementById("gameOverScreen");
     const finalScoreDisplay = document.getElementById("finalScore");
     const restartButton = document.getElementById("restartButton");
-
-    // 🎵 AUDIO REFERENCES
-    const jumpSound = document.getElementById("jumpSound");
-    const landSound = document.getElementById("landSound");
-    const bgm = document.getElementById("bgm");
+    const startScreen = document.getElementById('startScreen');
+    const howToPlayScreen = document.getElementById('howToPlayScreen');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const howToPlayBtn = document.getElementById('howToPlayBtn');
+    const backToMenuBtn = document.getElementById('backToMenuBtn');
 
     // --- GAME CONSTANTS ---
     const GRAVITY = 0.8;
@@ -100,6 +33,27 @@
     let score, highestY;
     let bricks = [];
     let gameState = 'playing'; // 'playing' or 'gameOver'
+
+    // Show start screen initially
+    startScreen.style.display = 'flex';
+    gameContainer.style.display = 'none';
+
+    // Button event listeners
+    startGameBtn.addEventListener('click', () => {
+        startScreen.style.display = 'none';
+        gameContainer.style.display = 'block';
+        resetGame();
+    });
+
+    howToPlayBtn.addEventListener('click', () => {
+        startScreen.style.display = 'none';
+        howToPlayScreen.style.display = 'flex';
+    });
+
+    backToMenuBtn.addEventListener('click', () => {
+        howToPlayScreen.style.display = 'none';
+        startScreen.style.display = 'flex';
+    });
 
     function resetGame() {
         // Reset variables
@@ -130,13 +84,14 @@
 
         // Start game
         gameState = 'playing';
-        bgm.currentTime = 0; // 🎵 Restart music
-        bgm.play().catch(() => {}); // Catch autoplay restrictions
         requestAnimationFrame(gameLoop);
     }
 
     function createInitialBricks() {
+        // Create a starting platform
         createBrick(container.clientWidth / 2 - BRICK_WIDTH / 2, container.clientHeight - 50);
+
+        // Create random bricks
         for (let i = 0; i < TOTAL_BRICKS; i++) {
             createBrick(
                 Math.random() * (container.clientWidth - BRICK_WIDTH),
@@ -173,22 +128,25 @@
     function releaseJump() {
         if (!isCharging) return;
 
-        velocityX = HORIZONTAL_SPEED * jumpDirection;
+        // Only set horizontal velocity if there's a jump direction
+        if (jumpDirection !== 0) {
+            velocityX = HORIZONTAL_SPEED * jumpDirection;
+        } else {
+            velocityX = 0; // No horizontal movement for vertical jumps
+        }
+        
         velocityY = -jumpPower;
         isCharging = false;
         isJumping = true;
         clearInterval(chargeTimer);
         updateChargeIndicator(0);
-
-        // 🎵 Play jump sound
-        jumpSound.currentTime = 0;
-        jumpSound.play().catch(() => {});
     }
     
     function updateChargeIndicator(power) {
         const chargeRatio = Math.min((power - MIN_JUMP_POWER) / (MAX_JUMP_POWER - MIN_JUMP_POWER), 1);
         const color = `rgb(${255 * chargeRatio}, ${255 * (1 - chargeRatio)}, 0)`;
         character.style.setProperty('--eye-color', color);
+        // A bit of a hack, but direct pseudo-element styling requires CSS variables
         character.style.background = `
             conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
             conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
@@ -212,40 +170,94 @@
     });
 
     window.addEventListener('keydown', (e) => {
-        if (isJumping || isCharging) return; 
-        if (e.key === 'ArrowLeft') startCharge(-1);
-        else if (e.key === 'ArrowRight') startCharge(1);
-        else if (e.key === ' ' || e.key === 'ArrowUp') startCharge(0);
+        switch(e.key) {
+            case 'ArrowLeft':
+                velocityX = -HORIZONTAL_SPEED;
+                break;
+            case 'ArrowRight':
+                velocityX = HORIZONTAL_SPEED;
+                break;
+            case 'ArrowUp':
+            case ' ':
+                if (!isJumping && !isCharging) {
+                    startCharge(0);
+                }
+                break;
+        }
     });
 
     window.addEventListener('keyup', (e) => {
-        if (isCharging && (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-            releaseJump();
+        switch(e.key) {
+            case 'ArrowLeft':
+                if (velocityX < 0) velocityX = 0;
+                break;
+            case 'ArrowRight':
+                if (velocityX > 0) velocityX = 0;
+                break;
+            case 'ArrowUp':
+            case ' ':
+                releaseJump();
+                break;
         }
+    });
+
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
+    const jumpBtn = document.getElementById('jumpBtn');
+
+    // Touch controls
+    leftBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        velocityX = -HORIZONTAL_SPEED;
+    });
+
+    rightBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        velocityX = HORIZONTAL_SPEED;
+    });
+
+    leftBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (velocityX < 0) velocityX = 0;
+    });
+
+    rightBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (velocityX > 0) velocityX = 0;
+    });
+
+    // Mouse controls
+    leftBtn.addEventListener('mousedown', () => {
+        velocityX = -HORIZONTAL_SPEED;
+    });
+    rightBtn.addEventListener('mousedown', () => {
+        velocityX = HORIZONTAL_SPEED;
+    });
+    jumpBtn.addEventListener('mousedown', () => {
+        if (!isCharging) {
+            startCharge(0); // Vertical-only jump for the jump button
+        }
+    });
+
+    [leftBtn, rightBtn, jumpBtn].forEach(btn => {
+        btn.addEventListener('mouseup', releaseJump);
+        btn.addEventListener('mouseleave', releaseJump);
     });
 
     // --- COLLISION & PHYSICS ---
     function checkCollisions() {
+        // Check for landing on bricks
         for (const brick of bricks) {
             const brickTop = brick.offsetTop;
             const brickLeft = brick.offsetLeft;
 
             if (
-                velocityY > 0 &&
+                velocityY > 0 && // Moving down
                 positionY + CHARACTER_HEIGHT >= brickTop &&
                 positionY + CHARACTER_HEIGHT <= brickTop + BRICK_HEIGHT &&
                 positionX + CHARACTER_WIDTH > brickLeft &&
                 positionX < brickLeft + BRICK_WIDTH
             ) {
-                if (isJumping) {
-                    score++;
-                    scoreDisplay.textContent = "Score: " + score;
-
-                    // 🎵 Play land sound
-                    landSound.currentTime = 0;
-                    landSound.play().catch(() => {});
-                }
-
                 positionY = brickTop - CHARACTER_HEIGHT;
                 velocityY = 0;
                 isJumping = false;
@@ -255,16 +267,13 @@
             }
         }
 
+        // Check for ground collision
         if (positionY >= container.clientHeight - CHARACTER_HEIGHT) {
             positionY = container.clientHeight - CHARACTER_HEIGHT;
             velocityY = 0;
             isJumping = false;
             velocityX *= GROUND_FRICTION;
             if (Math.abs(velocityX) < 0.1) velocityX = 0;
-
-            // 🎵 Play land sound on ground hit
-            landSound.currentTime = 0;
-            landSound.play().catch(() => {});
         }
     }
 
@@ -272,16 +281,20 @@
         gameState = 'gameOver';
         finalScoreDisplay.textContent = `Your Score: ${score}`;
         gameOverScreen.style.display = 'flex';
-        bgm.pause(); // 🎵 Stop background music
     }
 
     // --- MAIN GAME LOOP ---
     function gameLoop() {
         if (gameState !== 'playing') return;
+
+        // Apply gravity
         velocityY += GRAVITY;
+
+        // Update position
         positionX += velocityX;
         positionY += velocityY;
 
+        // Wall bounces
         if (positionX < 0) {
             positionX = 0;
             velocityX *= -WALL_BOUNCE_DAMPING;
@@ -292,29 +305,48 @@
 
         checkCollisions();
 
+        // Vertical scrolling
         if (positionY < SCROLL_THRESHOLD_TOP) {
             const scrollAmount = SCROLL_THRESHOLD_TOP - positionY;
             positionY += scrollAmount;
+            
+            // Move bricks down
             bricks.forEach(brick => {
-                brick.style.top = (brick.offsetTop + scrollAmount) + "px";
+                const newTop = brick.offsetTop + scrollAmount;
+                brick.style.top = newTop + "px";
             });
+            
             highestY -= scrollAmount;
         }
 
+        // Update score based on highest point reached
+        const currentHeight = Math.floor((highestY - positionY) / 10);
+        if (currentHeight > score) {
+            score = currentHeight;
+            scoreDisplay.textContent = "Score: " + score;
+        }
+
+        // Update character position
         character.style.left = positionX + "px";
         character.style.top = positionY + "px";
 
+        // Recycle bricks
         bricks.forEach(brick => {
             if (brick.offsetTop > container.clientHeight) {
+                // Move brick to the top, off-screen
                 brick.style.left = Math.random() * (container.clientWidth - BRICK_WIDTH) + 'px';
                 brick.style.top = (brick.offsetTop - container.clientHeight - 200) + 'px';
             }
         });
-
+        
+        // Game Over condition
         if (positionY > container.clientHeight) {
             endGame();
         }
 
-</body>
-
-</html>
+        requestAnimationFrame(gameLoop);
+    }
+    
+    // --- INITIALIZATION ---
+    restartButton.addEventListener('click', resetGame);
+    resetGame();
