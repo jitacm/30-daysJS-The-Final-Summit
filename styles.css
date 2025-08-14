@@ -255,3 +255,53 @@ body {
       transform: scale(0.9);
       background: rgba(255, 255, 255, 0.2);
     }
+
+    /* --- POWER-UP STYLES --- */
+.powerup {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffd93d, #ff6b6b);
+    border: 3px solid white;
+    box-shadow: 0 0 15px rgba(255, 217, 61, 0.6), 0 0 30px rgba(255, 107, 107, 0.4);
+    animation: float 2s ease-in-out infinite;
+    z-index: 5;
+}
+
+.powerup::before {
+    content: "🚀";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* --- JETPACK ACTIVE EFFECT --- */
+#character.jetpack-active {
+    box-shadow: 0 0 25px rgba(0, 255, 136, 0.8),
+                0 0 40px rgba(0, 255, 136, 0.5);
+    filter: brightness(1.2);
+    border-color: #00ff88;
+}
+
+#character.jetpack-active::after {
+    content: "🔥";
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    animation: flicker 0.2s infinite;
+}
+
+@keyframes flicker {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
