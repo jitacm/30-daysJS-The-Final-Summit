@@ -18,12 +18,14 @@ const CHARGE_SPEED = 1.5;
 const HORIZONTAL_SPEED = 7;
 const WALL_BOUNCE_DAMPING = 0.5;
 const GROUND_FRICTION = 0.1;
+const ICE_FRICTION = 0.01; // Much lower friction
 const CHARACTER_WIDTH = 50;
 const CHARACTER_HEIGHT = 50;
 const BRICK_WIDTH = 80;
 const BRICK_HEIGHT = 15;
 const TOTAL_BRICKS = 8;
 const SCROLL_THRESHOLD_TOP = window.innerHeight / 2.5;
+const ICE_PLATFORM_CHANCE = 0.2; // 20% chance
 const POWERUP_CHANCE = 0.2; // 20% chance for a brick to be a power-up
 const JETPACK_DURATION = 5000; // 5 seconds
 
@@ -93,7 +95,13 @@ function resetGame() {
     gameOverScreen.style.display = 'none';
 
     // Clear existing bricks and create new ones
-    bricks.forEach(brick => brick.remove());
+    bricks.forEach(brick => {
+        if (brick.element) {
+            brick.element.remove();
+        } else {
+            brick.remove();
+        }
+    });
     bricks = [];
     createInitialBricks();
 
@@ -104,28 +112,32 @@ function resetGame() {
 
 function createInitialBricks() {
     // Create a starting platform
-    createBrick(container.clientWidth / 2 - BRICK_WIDTH / 2, container.clientHeight - 50);
+    createBrick(container.clientWidth / 2 - BRICK_WIDTH / 2, container.clientHeight - 50, 'normal');
 
-    // Create random bricks
+    // Create random bricks, some ice, some power-up
     for (let i = 0; i < TOTAL_BRICKS; i++) {
         const x = Math.random() * (container.clientWidth - BRICK_WIDTH);
         const y = container.clientHeight - 150 - (i * 100);
-        const isPowerUp = Math.random() < POWERUP_CHANCE;
-        if (isPowerUp) {
+
+        // Decide if brick is ice
+        if (Math.random() < ICE_PLATFORM_CHANCE) {
+            createBrick(x, y, 'ice');
+        } else if (Math.random() < POWERUP_CHANCE) {
             createPowerUp(x, y);
         } else {
-            createBrick(x, y);
+            createBrick(x, y, 'normal');
         }
     }
 }
 
-function createBrick(x, y) {
+// Brick structure: { element, x, y, width, height, type }
+function createBrick(x, y, type = 'normal') {
     const brick = document.createElement("div");
-    brick.className = "brick";
+    brick.className = `brick ${type}-platform`;
     brick.style.left = x + "px";
     brick.style.top = y + "px";
     container.appendChild(brick);
-    bricks.push(brick);
+    bricks.push({ element: brick, x, y, width: BRICK_WIDTH, height: BRICK_HEIGHT, type });
 }
 
 function createPowerUp(x, y) {
@@ -166,7 +178,7 @@ function releaseJump() {
     if (jumpDirection !== 0) {
         velocityX = (isJetpackActive ? HORIZONTAL_SPEED * 1.5 : HORIZONTAL_SPEED) * jumpDirection;
     } else {
-        velocityX = 0;
+        velocityX = 0; // No horizontal movement for vertical jumps
     }
     
     const effectiveJumpPower = isJetpackActive ? MAX_JUMP_POWER * 1.3 : jumpPower;
@@ -176,10 +188,12 @@ function releaseJump() {
     clearInterval(chargeTimer);
     updateChargeIndicator(0);
 
-    // 🎵 Play jump sound
+    // 🎵 Play jump sound if present
     const jumpSound = document.getElementById("jumpSound");
-    jumpSound.currentTime = 0;
-    jumpSound.play().catch(() => {});
+    if (jumpSound) {
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(() => {});
+    }
 }
 
 function updateChargeIndicator(power) {
@@ -274,10 +288,9 @@ rightBtn.addEventListener('mousedown', () => {
 });
 jumpBtn.addEventListener('mousedown', () => {
     if (!isCharging) {
-        startCharge(0);
+        startCharge(0); // Vertical-only jump for the jump button
     }
 });
-
 [leftBtn, rightBtn, jumpBtn].forEach(btn => {
     btn.addEventListener('mouseup', releaseJump);
     btn.addEventListener('mouseleave', releaseJump);
@@ -287,11 +300,11 @@ jumpBtn.addEventListener('mousedown', () => {
 function checkCollisions() {
     // Check for landing on bricks
     for (const brick of bricks) {
-        const brickTop = brick.offsetTop;
-        const brickLeft = brick.offsetLeft;
+        const brickTop = brick.element.offsetTop;
+        const brickLeft = brick.element.offsetLeft;
 
         if (
-            velocityY > 0 &&
+            velocityY > 0 && // Moving down
             positionY + CHARACTER_HEIGHT >= brickTop &&
             positionY + CHARACTER_HEIGHT <= brickTop + BRICK_HEIGHT &&
             positionX + CHARACTER_WIDTH > brickLeft &&
@@ -300,13 +313,22 @@ function checkCollisions() {
             positionY = brickTop - CHARACTER_HEIGHT;
             velocityY = 0;
             isJumping = false;
-            velocityX *= GROUND_FRICTION;
+
+            // Apply friction based on platform type
+            if (brick.type === 'ice') {
+                velocityX *= ICE_FRICTION;
+            } else {
+                velocityX *= GROUND_FRICTION;
+            }
+
             if (Math.abs(velocityX) < 0.1) velocityX = 0;
 
-            // 🎵 Play land sound
+            // 🎵 Play land sound if present
             const landSound = document.getElementById("landSound");
-            landSound.currentTime = 0;
-            landSound.play().catch(() => {});
+            if (landSound) {
+                landSound.currentTime = 0;
+                landSound.play().catch(() => {});
+            }
 
             return;
         }
@@ -334,10 +356,12 @@ function checkCollisions() {
         velocityX *= GROUND_FRICTION;
         if (Math.abs(velocityX) < 0.1) velocityX = 0;
 
-        // 🎵 Play land sound
+        // 🎵 Play land sound if present
         const landSound = document.getElementById("landSound");
-        landSound.currentTime = 0;
-        landSound.play().catch(() => {});
+        if (landSound) {
+            landSound.currentTime = 0;
+            landSound.play().catch(() => {});
+        }
     }
 }
 
@@ -361,6 +385,14 @@ function collectPowerUp(powerUp) {
         const newY = container.clientHeight - 1000 - Math.random() * 500;
         createPowerUp(newX, newY);
     }, JETPACK_DURATION);
+}
+
+function endGame() {
+    gameState = 'gameOver';
+    finalScoreDisplay.textContent = `Your Score: ${score}`;
+    gameOverScreen.style.display = 'flex';
+    const bgm = document.getElementById("bgm");
+    if (bgm) bgm.pause();
 }
 
 // --- MAIN GAME LOOP ---
@@ -392,11 +424,12 @@ function gameLoop() {
         
         // Move bricks down
         bricks.forEach(brick => {
-            const newTop = brick.offsetTop + scrollAmount;
-            brick.style.top = newTop + "px";
+            const newTop = brick.element.offsetTop + scrollAmount;
+            brick.element.style.top = newTop + "px";
+            brick.y = newTop;
         });
 
-        // Move power-ups
+        // Move power-ups down
         powerUps.forEach(p => {
             p.y += scrollAmount;
             p.element.style.top = p.y + "px";
@@ -416,14 +449,16 @@ function gameLoop() {
     character.style.left = positionX + "px";
     character.style.top = positionY + "px";
 
-    // Recycle bricks and power-ups
+    // Recycle bricks
     bricks.forEach(brick => {
-        if (brick.offsetTop > container.clientHeight) {
+        if (brick.element.offsetTop > container.clientHeight) {
             // Move brick to the top, off-screen
             const newX = Math.random() * (container.clientWidth - BRICK_WIDTH);
-            const newY = brick.offsetTop - container.clientHeight - 200;
-            brick.style.left = newX + 'px';
-            brick.style.top = newY + 'px';
+            const newY = brick.element.offsetTop - container.clientHeight - 200;
+            brick.element.style.left = newX + 'px';
+            brick.element.style.top = newY + 'px';
+            brick.x = newX;
+            brick.y = newY;
 
             // Possibly turn it into a power-up
             if (Math.random() < POWERUP_CHANCE) {
@@ -448,13 +483,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-function endGame() {
-    gameState = 'gameOver';
-    finalScoreDisplay.textContent = `Your Score: ${score}`;
-    gameOverScreen.style.display = 'flex';
-    const bgm = document.getElementById("bgm");
-    bgm.pause();
-}
-
 // --- INITIALIZATION ---
 restartButton.addEventListener('click', resetGame);
+resetGame();

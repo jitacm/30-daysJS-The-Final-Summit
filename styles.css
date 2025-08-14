@@ -256,7 +256,32 @@ body {
       background: rgba(255, 255, 255, 0.2);
     }
 
-    /* --- POWER-UP STYLES --- */
+    /* Ice Platform Styles */
+.ice-platform {
+    background: linear-gradient(135deg, #aeeaff, #e0f7ff);
+    box-shadow: 0 0 10px rgba(174, 234, 255, 0.5);
+    border: 1px solid #80d4f5;
+}
+
+.ice-platform::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.05) 10px,
+        rgba(255, 255, 255, 0) 20px
+    );
+    pointer-events: none;
+    opacity: 0.4;
+    border-radius: inherit;
+}
+
+/* --- POWER-UP STYLES --- */
 .powerup {
     position: absolute;
     width: 40px;
