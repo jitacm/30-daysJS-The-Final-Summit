@@ -10,6 +10,11 @@ const startGameBtn = document.getElementById('startGameBtn');
 const howToPlayBtn = document.getElementById('howToPlayBtn');
 const backToMenuBtn = document.getElementById('backToMenuBtn');
 
+// Power-up status displays
+const jetpackStatus = document.getElementById('jetpackStatus');
+const shieldStatus = document.getElementById('shieldStatus');
+const superJumpStatus = document.getElementById('superJumpStatus');
+
 // --- GAME CONSTANTS ---
 const GRAVITY = 0.8;
 const MAX_JUMP_POWER = 22;
@@ -24,8 +29,20 @@ const BRICK_WIDTH = 80;
 const BRICK_HEIGHT = 15;
 const TOTAL_BRICKS = 8;
 const SCROLL_THRESHOLD_TOP = window.innerHeight / 2.5;
-const POWERUP_CHANCE = 0.2; // 20% chance for a brick to be a power-up
-const JETPACK_DURATION = 5000; // 5 seconds
+
+// Power-up constants
+const POWERUP_TYPES = ['jetpack', 'shield', 'superJump'];
+const POWERUP_CHANCE = 0.15; // 15% chance
+const JETPACK_DURATION = 5000;
+const SHIELD_DURATION = 8000;
+const SUPERJUMP_DURATION = 6000;
+
+// Obstacle constants
+const ENEMY_CHANCE = 0.1; // 10% chance
+const SPIKE_CHANCE = 0.08; // 8% chance
+const MOVING_PLATFORM_CHANCE = 0.12; // 12% chance
+const ENEMY_SPEED = 2;
+const PLATFORM_SPEED = 1.5;
 
 // --- GAME STATE ---
 let positionX, positionY, velocityX, velocityY;
@@ -35,9 +52,22 @@ let chargeTimer;
 let score, highestY;
 let bricks = [];
 let powerUps = [];
-let isJetpackActive = false;
-let jetpackTimer = null;
-let gameState = 'playing'; // 'playing' or 'gameOver'
+let enemies = [];
+let spikes = [];
+let movingPlatforms = [];
+let gameState = 'playing';
+
+// Power-up states
+let activeEffects = {
+    jetpack: false,
+    shield: false,
+    superJump: false
+};
+let effectTimers = {
+    jetpack: null,
+    shield: null,
+    superJump: null
+};
 
 // Show start screen initially
 startScreen.style.display = 'flex';
@@ -73,15 +103,30 @@ function resetGame() {
     score = 0;
     highestY = positionY;
 
-    // Reset power-up state
-    if (jetpackTimer) {
-        clearTimeout(jetpackTimer);
-        jetpackTimer = null;
-    }
-    isJetpackActive = false;
-    character.classList.remove('jetpack-active');
+    // Reset power-up states
+    Object.keys(effectTimers).forEach(key => {
+        if (effectTimers[key]) {
+            clearTimeout(effectTimers[key]);
+            effectTimers[key] = null;
+        }
+        activeEffects[key] = false;
+    });
+    
+    // Clear all visual effects
+    character.className = '';
+    jetpackStatus.classList.add('hidden');
+    shieldStatus.classList.add('hidden');
+    superJumpStatus.classList.add('hidden');
+
+    // Clear all game objects
     powerUps.forEach(p => p.element.remove());
     powerUps = [];
+    enemies.forEach(e => e.element.remove());
+    enemies = [];
+    spikes.forEach(s => s.element.remove());
+    spikes = [];
+    movingPlatforms.forEach(mp => mp.element.remove());
+    movingPlatforms = [];
 
     // Reset display
     scoreDisplay.textContent = "Score: 0";
@@ -103,18 +148,31 @@ function resetGame() {
 }
 
 function createInitialBricks() {
-    // Create a starting platform
+    // Create a safe starting platform
     createBrick(container.clientWidth / 2 - BRICK_WIDTH / 2, container.clientHeight - 50);
 
-    // Create random bricks
+    // Create platforms with varied content
     for (let i = 0; i < TOTAL_BRICKS; i++) {
         const x = Math.random() * (container.clientWidth - BRICK_WIDTH);
         const y = container.clientHeight - 150 - (i * 100);
-        const isPowerUp = Math.random() < POWERUP_CHANCE;
-        if (isPowerUp) {
-            createPowerUp(x, y);
+        
+        // Decide what to create based on random chance
+        const rand = Math.random();
+        
+        if (rand < MOVING_PLATFORM_CHANCE && i > 2) {
+            createMovingPlatform(x, y);
         } else {
             createBrick(x, y);
+            
+            // Add obstacles or power-ups on static platforms
+            if (rand < POWERUP_CHANCE + MOVING_PLATFORM_CHANCE) {
+                const powerupType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+                createPowerUp(x + BRICK_WIDTH/2 - 20, y - 45, powerupType);
+            } else if (rand < POWERUP_CHANCE + MOVING_PLATFORM_CHANCE + ENEMY_CHANCE && i > 1) {
+                createEnemy(x + BRICK_WIDTH/2 - 15, y - 35);
+            } else if (rand < POWERUP_CHANCE + MOVING_PLATFORM_CHANCE + ENEMY_CHANCE + SPIKE_CHANCE && i > 1) {
+                createSpike(x + 10, y - 20);
+            }
         }
     }
 }
@@ -128,18 +186,81 @@ function createBrick(x, y) {
     bricks.push(brick);
 }
 
-function createPowerUp(x, y) {
+function createMovingPlatform(x, y) {
+    const platform = document.createElement("div");
+    platform.className = "brick moving-platform";
+    platform.style.left = x + "px";
+    platform.style.top = y + "px";
+    container.appendChild(platform);
+    
+    movingPlatforms.push({
+        element: platform,
+        x: x,
+        y: y,
+        direction: Math.random() > 0.5 ? 1 : -1,
+        range: 150,
+        startX: x
+    });
+    
+    bricks.push(platform);
+}
+
+function createPowerUp(x, y, type) {
     const powerUp = document.createElement("div");
-    powerUp.className = "powerup jetpack";
+    powerUp.className = `powerup ${type}`;
     powerUp.style.left = x + "px";
     powerUp.style.top = y + "px";
+    
+    // Add emoji based on type
+    const emojis = {
+        jetpack: '🚀',
+        shield: '🛡️',
+        superJump: '⚡'
+    };
+    powerUp.textContent = emojis[type];
+    
     container.appendChild(powerUp);
-
     powerUps.push({
         x, y,
         width: 40,
         height: 40,
-        element: powerUp
+        element: powerUp,
+        type: type
+    });
+}
+
+function createEnemy(x, y) {
+    const enemy = document.createElement("div");
+    enemy.className = "enemy";
+    enemy.style.left = x + "px";
+    enemy.style.top = y + "px";
+    container.appendChild(enemy);
+    
+    enemies.push({
+        element: enemy,
+        x: x,
+        y: y,
+        width: 30,
+        height: 30,
+        direction: Math.random() > 0.5 ? 1 : -1,
+        range: 60,
+        startX: x
+    });
+}
+
+function createSpike(x, y) {
+    const spike = document.createElement("div");
+    spike.className = "spike";
+    spike.style.left = x + "px";
+    spike.style.top = y + "px";
+    container.appendChild(spike);
+    
+    spikes.push({
+        element: spike,
+        x: x,
+        y: y,
+        width: 60,
+        height: 20
     });
 }
 
@@ -162,37 +283,38 @@ function startCharge(direction) {
 function releaseJump() {
     if (!isCharging) return;
 
-    // Only set horizontal velocity if there's a jump direction
+    // Apply movement based on active effects
+    let speedMultiplier = 1;
+    let jumpMultiplier = 1;
+    
+    if (activeEffects.jetpack) speedMultiplier *= 1.5;
+    if (activeEffects.superJump) jumpMultiplier *= 1.8;
+    
     if (jumpDirection !== 0) {
-        velocityX = (isJetpackActive ? HORIZONTAL_SPEED * 1.5 : HORIZONTAL_SPEED) * jumpDirection;
+        velocityX = HORIZONTAL_SPEED * speedMultiplier * jumpDirection;
     } else {
         velocityX = 0;
     }
     
-    const effectiveJumpPower = isJetpackActive ? MAX_JUMP_POWER * 1.3 : jumpPower;
+    const effectiveJumpPower = jumpPower * jumpMultiplier;
     velocityY = -effectiveJumpPower;
     isCharging = false;
     isJumping = true;
     clearInterval(chargeTimer);
     updateChargeIndicator(0);
 
-    // 🎵 Play jump sound
+    // Play jump sound
     const jumpSound = document.getElementById("jumpSound");
-    jumpSound.currentTime = 0;
-    jumpSound.play().catch(() => {});
+    if (jumpSound) {
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(() => {});
+    }
 }
 
 function updateChargeIndicator(power) {
     const chargeRatio = Math.min((power - MIN_JUMP_POWER) / (MAX_JUMP_POWER - MIN_JUMP_POWER), 1);
     const color = `rgb(${255 * chargeRatio}, ${255 * (1 - chargeRatio)}, 0)`;
-    character.style.setProperty('--eye-color', color);
-    character.style.background = `
-        conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
-        conic-gradient(from 90deg, var(--eye-color, #292A37), var(--eye-color, #292A37)),
-        conic-gradient(ghostwhite, ghostwhite)`;
-    character.style.backgroundSize = '7px 15px, 7px 15px, 50px 50px';
-    character.style.backgroundPosition = '12px 10px, 31px 10px, 0 0';
-    character.style.backgroundRepeat = 'no-repeat';
+    character.style.setProperty('--charge-color', color);
 }
 
 // --- INPUT HANDLERS ---
@@ -211,10 +333,10 @@ container.addEventListener("touchend", (e) => {
 window.addEventListener('keydown', (e) => {
     switch(e.key) {
         case 'ArrowLeft':
-            velocityX = -HORIZONTAL_SPEED * (isJetpackActive ? 1.5 : 1);
+            velocityX = -HORIZONTAL_SPEED * (activeEffects.jetpack ? 1.5 : 1);
             break;
         case 'ArrowRight':
-            velocityX = HORIZONTAL_SPEED * (isJetpackActive ? 1.5 : 1);
+            velocityX = HORIZONTAL_SPEED * (activeEffects.jetpack ? 1.5 : 1);
             break;
         case 'ArrowUp':
         case ' ':
@@ -240,19 +362,19 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
+// Mobile controls
 const leftBtn = document.getElementById('leftBtn');
 const rightBtn = document.getElementById('rightBtn');
 const jumpBtn = document.getElementById('jumpBtn');
 
-// Touch controls
 leftBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    velocityX = -HORIZONTAL_SPEED * (isJetpackActive ? 1.5 : 1);
+    velocityX = -HORIZONTAL_SPEED * (activeEffects.jetpack ? 1.5 : 1);
 });
 
 rightBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    velocityX = HORIZONTAL_SPEED * (isJetpackActive ? 1.5 : 1);
+    velocityX = HORIZONTAL_SPEED * (activeEffects.jetpack ? 1.5 : 1);
 });
 
 leftBtn.addEventListener('touchend', (e) => {
@@ -265,17 +387,27 @@ rightBtn.addEventListener('touchend', (e) => {
     if (velocityX > 0) velocityX = 0;
 });
 
+jumpBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (!isCharging) startCharge(0);
+});
+
+jumpBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    releaseJump();
+});
+
 // Mouse controls
 leftBtn.addEventListener('mousedown', () => {
-    velocityX = -HORIZONTAL_SPEED * (isJetpackActive ? 1.5 : 1);
+    velocityX = -HORIZONTAL_SPEED * (activeEffects.jetpack ? 1.5 : 1);
 });
+
 rightBtn.addEventListener('mousedown', () => {
-    velocityX = HORIZONTAL_SPEED * (isJetpackActive ? 1.5 : 1);
+    velocityX = HORIZONTAL_SPEED * (activeEffects.jetpack ? 1.5 : 1);
 });
+
 jumpBtn.addEventListener('mousedown', () => {
-    if (!isCharging) {
-        startCharge(0);
-    }
+    if (!isCharging) startCharge(0);
 });
 
 [leftBtn, rightBtn, jumpBtn].forEach(btn => {
@@ -285,7 +417,7 @@ jumpBtn.addEventListener('mousedown', () => {
 
 // --- COLLISION & PHYSICS ---
 function checkCollisions() {
-    // Check for landing on bricks
+    // Check brick collisions
     for (const brick of bricks) {
         const brickTop = brick.offsetTop;
         const brickLeft = brick.offsetLeft;
@@ -303,16 +435,16 @@ function checkCollisions() {
             velocityX *= GROUND_FRICTION;
             if (Math.abs(velocityX) < 0.1) velocityX = 0;
 
-            // 🎵 Play land sound
             const landSound = document.getElementById("landSound");
-            landSound.currentTime = 0;
-            landSound.play().catch(() => {});
-
+            if (landSound) {
+                landSound.currentTime = 0;
+                landSound.play().catch(() => {});
+            }
             return;
         }
     }
 
-    // Check for power-up collection
+    // Check power-up collection
     for (let i = powerUps.length - 1; i >= 0; i--) {
         const p = powerUps[i];
         if (
@@ -326,7 +458,35 @@ function checkCollisions() {
         }
     }
 
-    // Check for ground collision
+    // Check enemy collisions
+    if (!activeEffects.shield) {
+        for (const enemy of enemies) {
+            if (
+                positionY + CHARACTER_HEIGHT >= enemy.y &&
+                positionY <= enemy.y + enemy.height &&
+                positionX + CHARACTER_WIDTH >= enemy.x &&
+                positionX <= enemy.x + enemy.width
+            ) {
+                handleDamage();
+                return;
+            }
+        }
+
+        // Check spike collisions
+        for (const spike of spikes) {
+            if (
+                positionY + CHARACTER_HEIGHT >= spike.y &&
+                positionY <= spike.y + spike.height &&
+                positionX + CHARACTER_WIDTH >= spike.x &&
+                positionX <= spike.x + spike.width
+            ) {
+                handleDamage();
+                return;
+            }
+        }
+    }
+
+    // Ground collision
     if (positionY >= container.clientHeight - CHARACTER_HEIGHT) {
         positionY = container.clientHeight - CHARACTER_HEIGHT;
         velocityY = 0;
@@ -334,10 +494,11 @@ function checkCollisions() {
         velocityX *= GROUND_FRICTION;
         if (Math.abs(velocityX) < 0.1) velocityX = 0;
 
-        // 🎵 Play land sound
         const landSound = document.getElementById("landSound");
-        landSound.currentTime = 0;
-        landSound.play().catch(() => {});
+        if (landSound) {
+            landSound.currentTime = 0;
+            landSound.play().catch(() => {});
+        }
     }
 }
 
@@ -346,29 +507,125 @@ function collectPowerUp(powerUp) {
     powerUp.element.remove();
     powerUps = powerUps.filter(p => p !== powerUp);
 
-    // Activate jetpack
-    isJetpackActive = true;
-    character.classList.add('jetpack-active');
+    // Activate effect based on type
+    activatePowerUp(powerUp.type);
 
-    // Visual timer feedback (optional: you could add a UI bar)
-    if (jetpackTimer) clearTimeout(jetpackTimer);
-    jetpackTimer = setTimeout(() => {
-        isJetpackActive = false;
-        character.classList.remove('jetpack-active');
-        jetpackTimer = null;
-        // Respawn power-up somewhere above
-        const newX = Math.random() * (container.clientWidth - BRICK_WIDTH);
-        const newY = container.clientHeight - 1000 - Math.random() * 500;
-        createPowerUp(newX, newY);
-    }, JETPACK_DURATION);
+    // Play power-up sound
+    const powerupSound = document.getElementById("powerupSound");
+    if (powerupSound) {
+        powerupSound.currentTime = 0;
+        powerupSound.play().catch(() => {});
+    }
+}
+
+function activatePowerUp(type) {
+    // Clear existing timer if reactivating
+    if (effectTimers[type]) {
+        clearTimeout(effectTimers[type]);
+    }
+
+    activeEffects[type] = true;
+    character.classList.add(`${type}-active`);
+
+    // Show status indicator
+    const statusElements = {
+        jetpack: jetpackStatus,
+        shield: shieldStatus,
+        superJump: superJumpStatus
+    };
+    
+    const durations = {
+        jetpack: JETPACK_DURATION,
+        shield: SHIELD_DURATION,
+        superJump: SUPERJUMP_DURATION
+    };
+
+    const statusEl = statusElements[type];
+    statusEl.classList.remove('hidden');
+    
+    // Update timer display
+    let timeLeft = durations[type] / 1000;
+    const timerEl = statusEl.querySelector('.timer');
+    timerEl.textContent = timeLeft + 's';
+    
+    const countdownInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft + 's';
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+        }
+    }, 1000);
+
+    // Set deactivation timer
+    effectTimers[type] = setTimeout(() => {
+        activeEffects[type] = false;
+        character.classList.remove(`${type}-active`);
+        statusEl.classList.add('hidden');
+        effectTimers[type] = null;
+    }, durations[type]);
+}
+
+function handleDamage() {
+    // Flash effect
+    character.classList.add('damaged');
+    setTimeout(() => character.classList.remove('damaged'), 500);
+
+    // Play hit sound
+    const hitSound = document.getElementById("hitSound");
+    if (hitSound) {
+        hitSound.currentTime = 0;
+        hitSound.play().catch(() => {});
+    }
+
+    // Knockback
+    velocityY = -10;
+    velocityX = (Math.random() - 0.5) * 10;
+}
+
+function updateEnemies() {
+    enemies.forEach(enemy => {
+        // Move enemy back and forth
+        enemy.x += ENEMY_SPEED * enemy.direction;
+        
+        // Reverse direction at range limits
+        if (Math.abs(enemy.x - enemy.startX) > enemy.range) {
+            enemy.direction *= -1;
+        }
+        
+        enemy.element.style.left = enemy.x + 'px';
+    });
+}
+
+function updateMovingPlatforms() {
+    movingPlatforms.forEach(platform => {
+        // Move platform
+        platform.x += PLATFORM_SPEED * platform.direction;
+        
+        // Reverse at limits
+        if (Math.abs(platform.x - platform.startX) > platform.range) {
+            platform.direction *= -1;
+        }
+        
+        platform.element.style.left = platform.x + 'px';
+    });
+}
+
+function endGame() {
+    gameState = 'gameOver';
+    finalScoreDisplay.textContent = `Your Score: ${score}`;
+    gameOverScreen.style.display = 'flex';
+    
+    const bgm = document.getElementById("bgm");
+    if (bgm) bgm.pause();
 }
 
 // --- MAIN GAME LOOP ---
 function gameLoop() {
     if (gameState !== 'playing') return;
 
-    // Apply gravity
-    velocityY += GRAVITY;
+    // Apply gravity (reduced if jetpack active)
+    const gravityMultiplier = activeEffects.jetpack ? 0.6 : 1;
+    velocityY += GRAVITY * gravityMultiplier;
 
     // Update position
     positionX += velocityX;
@@ -384,28 +641,45 @@ function gameLoop() {
     }
 
     checkCollisions();
+    updateEnemies();
+    updateMovingPlatforms();
 
     // Vertical scrolling
     if (positionY < SCROLL_THRESHOLD_TOP) {
         const scrollAmount = SCROLL_THRESHOLD_TOP - positionY;
         positionY += scrollAmount;
         
-        // Move bricks down
+        // Scroll all elements
         bricks.forEach(brick => {
-            const newTop = brick.offsetTop + scrollAmount;
-            brick.style.top = newTop + "px";
+            brick.style.top = (brick.offsetTop + scrollAmount) + "px";
         });
 
-        // Move power-ups
         powerUps.forEach(p => {
             p.y += scrollAmount;
             p.element.style.top = p.y + "px";
+        });
+
+        enemies.forEach(e => {
+            e.y += scrollAmount;
+            e.startX = e.x; // Reset patrol center
+            e.element.style.top = e.y + "px";
+        });
+
+        spikes.forEach(s => {
+            s.y += scrollAmount;
+            s.element.style.top = s.y + "px";
+        });
+
+        movingPlatforms.forEach(mp => {
+            mp.y += scrollAmount;
+            mp.startX = mp.x;
+            mp.element.style.top = mp.y + "px";
         });
         
         highestY -= scrollAmount;
     }
 
-    // Update score based on highest point reached
+    // Update score
     const currentHeight = Math.floor((highestY - positionY) / 10);
     if (currentHeight > score) {
         score = currentHeight;
@@ -416,28 +690,50 @@ function gameLoop() {
     character.style.left = positionX + "px";
     character.style.top = positionY + "px";
 
-    // Recycle bricks and power-ups
+    // Recycle off-screen elements
     bricks.forEach(brick => {
         if (brick.offsetTop > container.clientHeight) {
-            // Move brick to the top, off-screen
             const newX = Math.random() * (container.clientWidth - BRICK_WIDTH);
-            const newY = brick.offsetTop - container.clientHeight - 200;
+            const newY = brick.offsetTop - container.clientHeight - 300;
             brick.style.left = newX + 'px';
             brick.style.top = newY + 'px';
 
-            // Possibly turn it into a power-up
-            if (Math.random() < POWERUP_CHANCE) {
-                createPowerUp(newX, newY);
+            // Randomly add new obstacles/power-ups
+            const rand = Math.random();
+            if (rand < 0.1) {
+                const powerupType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+                createPowerUp(newX + BRICK_WIDTH/2 - 20, newY - 45, powerupType);
+            } else if (rand < 0.2) {
+                createEnemy(newX + BRICK_WIDTH/2 - 15, newY - 35);
+            } else if (rand < 0.28) {
+                createSpike(newX + 10, newY - 20);
             }
         }
     });
 
-    // Recycle off-screen power-ups
-    powerUps.forEach((p, i) => {
+    // Clean up off-screen objects
+    powerUps = powerUps.filter(p => {
         if (p.y > container.clientHeight) {
             p.element.remove();
-            powerUps.splice(i, 1);
+            return false;
         }
+        return true;
+    });
+
+    enemies = enemies.filter(e => {
+        if (e.y > container.clientHeight) {
+            e.element.remove();
+            return false;
+        }
+        return true;
+    });
+
+    spikes = spikes.filter(s => {
+        if (s.y > container.clientHeight) {
+            s.element.remove();
+            return false;
+        }
+        return true;
     });
 
     // Game Over condition
@@ -446,14 +742,6 @@ function gameLoop() {
     }
 
     requestAnimationFrame(gameLoop);
-}
-
-function endGame() {
-    gameState = 'gameOver';
-    finalScoreDisplay.textContent = `Your Score: ${score}`;
-    gameOverScreen.style.display = 'flex';
-    const bgm = document.getElementById("bgm");
-    bgm.pause();
 }
 
 // --- INITIALIZATION ---
