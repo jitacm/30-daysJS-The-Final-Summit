@@ -262,15 +262,47 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: radial-gradient(circle, #ffd93d, #ff6b6b);
-    border: 3px solid white;
-    box-shadow: 0 0 15px rgba(255, 217, 61, 0.6), 0 0 30px rgba(255, 107, 107, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
     animation: float 2s ease-in-out infinite;
     z-index: 5;
 }
 
-.powerup::before {
-    content: "🚀";
+.powerup.jetpack {
+    background: radial-gradient(circle, #ff6b6b, #ffd93d);
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+}
+
+.powerup.shield {
+    background: radial-gradient(circle, #4ecdc4, #44a3aa);
+    box-shadow: 0 0 20px rgba(78, 205, 196, 0.6);
+}
+
+.powerup.superJump {
+    background: radial-gradient(circle, #f7b731, #ffd93d);
+    box-shadow: 0 0 20px rgba(247, 183, 49, 0.6);
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(180deg); }
+}
+
+/* --- OBSTACLE STYLES --- */
+.enemy {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    border-radius: 5px;
+    z-index: 4;
+    animation: enemyBob 1s ease-in-out infinite;
+}
+
+.enemy::before {
+    content: '👾';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -278,30 +310,148 @@ body {
     font-size: 20px;
 }
 
-@keyframes float {
+@keyframes enemyBob {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    50% { transform: translateY(-5px); }
 }
 
-/* --- JETPACK ACTIVE EFFECT --- */
+.spike {
+    position: absolute;
+    width: 60px;
+    height: 20px;
+    background: linear-gradient(to top, #95a5a6, #7f8c8d);
+    clip-path: polygon(10% 100%, 20% 0%, 30% 100%, 40% 0%, 50% 100%, 60% 0%, 70% 100%, 80% 0%, 90% 100%);
+    z-index: 4;
+}
+
+.moving-platform {
+    background: linear-gradient(90deg, #9b59b6, #8e44ad);
+    box-shadow: 0 0 15px rgba(155, 89, 182, 0.4);
+}
+
+.moving-platform::after {
+    content: '↔️';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+}
+
+/* --- POWER-UP EFFECTS ON CHARACTER --- */
+#character {
+    transition: all 0.2s ease;
+}
+
 #character.jetpack-active {
-    box-shadow: 0 0 25px rgba(0, 255, 136, 0.8),
-                0 0 40px rgba(0, 255, 136, 0.5);
-    filter: brightness(1.2);
-    border-color: #00ff88;
+    box-shadow: 0 0 30px rgba(255, 107, 107, 0.8),
+                0 10px 20px rgba(255, 217, 61, 0.5);
 }
 
 #character.jetpack-active::after {
-    content: "🔥";
+    content: '🔥';
     position: absolute;
-    bottom: -15px;
+    bottom: -20px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 20px;
     animation: flicker 0.2s infinite;
 }
 
+#character.shield-active {
+    box-shadow: 0 0 30px rgba(78, 205, 196, 0.8);
+    border: 3px solid #4ecdc4;
+}
+
+#character.shield-active::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border: 2px solid rgba(78, 205, 196, 0.5);
+    border-radius: 50%;
+    animation: shieldPulse 1s infinite;
+}
+
+#character.superJump-active {
+    box-shadow: 0 0 30px rgba(247, 183, 49, 0.8);
+    background: linear-gradient(135deg, #ffd93d, #f7b731);
+}
+
+#character.superJump-active::after {
+    content: '⚡';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    animation: bounce 0.5s infinite;
+}
+
+#character.damaged {
+    animation: damageFlash 0.5s;
+}
+
 @keyframes flicker {
-    0%, 100% { opacity: 0.6; }
+    0%, 100% { opacity: 0.8; }
     50% { opacity: 1; }
 }
+
+@keyframes shieldPulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@keyframes damageFlash {
+    0%, 100% { background-color: #00ff88; }
+    25%, 75% { background-color: #ff6b6b; }
+    50% { background-color: white; }
+}
+
+/* --- STATUS DISPLAY --- */
+#powerupStatus {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    z-index: 10;
+}
+
+.status-item {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 15px;
+    border-radius: 20px;
+    color: white;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.status-item.hidden {
+    display: none;
+}
+
+.status-item .timer {
+    font-weight: bold;
+    color: #ffd93d;
+}
+
+/* Charge indicator update */
+#character::before, #character::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 15px;
+    background-color: var(--charge-color, #292A37);
+    top: 10px;
+    transition: background-color 0.1s;
+}
+
+#character::before { left: 12px; }
+#character::after { right: 12px; }
